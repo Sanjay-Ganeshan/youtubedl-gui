@@ -1,0 +1,5 @@
+ffmpeg-python==0.2.0
+mutagen==1.45.1
+pafy==0.5.5
+pydub==0.23.1
+requests==2.25.1
