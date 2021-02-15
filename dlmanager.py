@@ -81,6 +81,7 @@ class DownloadEntry(object):
         self.pafy = None
         self.audio_only = False
         self.subtitles = False
+        self.burn_subtitles = True
         self.download_progress = None
         self.download_thread = None
 
@@ -255,23 +256,37 @@ class DownloadEntry(object):
 
     def _download_common(self, stream, postprocess):
         self.download_progress = 0.0
+
+        # Download the video / audio stream
         dl_path = f"{os.path.splitext(self.opath())[0]}.{stream.extension}"
-        #self.output_extension = f".{stream.extension}"
         stream.download(filepath=dl_path, callback=self._download_callback)
-        # Now that it's done, 
-        converted_path = postprocess(dl_path, remove_old=True)
-        output_dir, converted_fn = os.path.split(converted_path)
-        
-        converted_base, converted_ext = os.path.splitext(converted_fn)
-        self.output_dir = output_dir
-        self.output_file = converted_base
-        self.output_extension = converted_ext
 
+        # Now it's done. Download the subtitles if we need them.
         if self.subtitles:
-            self._download_subtitles()
+            subtitles_path = self._download_subtitles()
+        else:
+            subtitles_path = None
 
-        for each_callback in self.done_listeners:
-            each_callback(True)
+        burned_subtitle_path = None if not self.burn_subtitles else subtitles_path
+
+        converted_path = postprocess(dl_path, burned_subtitles = burned_subtitle_path, remove_old=True)
+
+        if converted_path is None:
+            # Failure!
+            for each_callback in self.done_listeners:
+                each_callback(False)
+    
+        else:
+            output_dir, converted_fn = os.path.split(converted_path)
+            
+            converted_base, converted_ext = os.path.splitext(converted_fn)
+            self.output_dir = output_dir
+            self.output_file = converted_base
+            self.output_extension = converted_ext
+
+
+            for each_callback in self.done_listeners:
+                each_callback(True)
 
     def _download_audio(self):
         audiostream = self.pafy.getbestaudio()
@@ -287,7 +302,9 @@ class DownloadEntry(object):
 
     def _download_subtitles(self):
         if self.url is not None:
-            download_subtitles(self.url, self.opath())
+            return download_subtitles(self.url, self.opath())
+        else:
+            return None
 
     def reveal_in_explorer(self):
         if self.exists_locally():

@@ -12,7 +12,7 @@ from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
-from kivy.graphics import Rectangle, Color as IColor
+from kivy.graphics import Rectangle, Color as IColor, InstructionGroup
 from kivy.resources import resource_find
 from kivy.properties import NumericProperty, BooleanProperty, StringProperty
 from kivy.effects.scroll import ScrollEffect
@@ -31,6 +31,7 @@ ICON_MUSIC = resource_find("icon_music.png")
 ICON_FOLDER = resource_find("icon_folder.png")
 ICON_DONE = resource_find("icon_done.png")
 ICON_DELETE = resource_find("icon_delete.png")
+ICON_WARNING = resource_find("icon_warning.png")
 ICON_DOWNLOAD = resource_find("icon_download.png")
 
 
@@ -47,11 +48,18 @@ class ImageButton(Button):
         self.img = None
         self.rect = Rectangle(pos=(0,0), size=(1,1), texture=None)
         self.bind(source=self.refresh_rect, size=self.resize_rect, pos=self.resize_rect)
+
+
         if source is None:
             source = PLACEHOLDER_IMG
         self.source = source
-        self.canvas.add(IColor(rgb=(1,1,1)))
-        self.canvas.add(self.rect)
+        
+        self.rect_inst = InstructionGroup()
+
+        self.rect_inst.add(IColor(rgb=(1,1,1)))
+        self.rect_inst.add(self.rect)
+        self.canvas.add(self.rect_inst)
+
         self.refresh_rect()
         self.resize_rect()
 
@@ -76,6 +84,7 @@ class ImageButton(Button):
 
     def refresh_rect(self, *args):
         assert resource_find(self.source) is not None
+        print("Showing",self.source)
         self.img = RawImage(str(self.source))
         self.rect.texture = self.img.texture
         
@@ -142,6 +151,7 @@ class YTDLQueueControls(BoxLayout):
 class YTDLQueueEntry(BoxLayout):
     download_progress = NumericProperty(0.0)
     done = BooleanProperty(False)
+    conversion_success = BooleanProperty(True)
 
     def __init__(self, ui_root, url=None, *args, **kwargs):
         super().__init__(*args, orientation='horizontal', **kwargs)
@@ -184,6 +194,8 @@ class YTDLQueueEntry(BoxLayout):
             which_icon = self.reveal_icon
         elif self.info.is_downloadable():
             which_icon = self.download_icon
+        elif not self.conversion_success:
+            which_icon = ICON_WARNING
         else:
             which_icon = None
 
@@ -195,12 +207,19 @@ class YTDLQueueEntry(BoxLayout):
                 self.add_widget(self.download_or_reveal)
             self.download_or_reveal.source = which_icon
 
-    def dl_on_progress(self, amount: float):
+    def _dl_on_progress(self, amount: float):
         self.download_progress = amount
+
+    def dl_on_progress(self, amount: float):
+        Clock.schedule_once(lambda dt: self._dl_on_progress(amount))
     
-    def dl_on_done(self, success: bool):
-        self.done = success
+    def _dl_on_done(self, success: bool):
+        self.done = True
+        self.conversion_success = success
         self.ui_root.refresh()
+
+    def dl_on_done(self, success: bool):
+        Clock.schedule_once(lambda dt: self._dl_on_done(success))
 
     def on_dl_pressed(self, *args):
         self.ui_root.details.update_info()
@@ -295,13 +314,16 @@ class YTDLDownloadQueueContents(BoxLayout):
 
 class YTDLDownloadQueueScroller(ScrollView):
     def __init__(self, ui_root, *args, **kwargs):
-        super().__init__(*args, do_scroll_x = False, always_overscroll = False, scroll_type=['bars', 'content'], **kwargs)
+        super().__init__(*args, do_scroll_x = False, bar_pos_y='left', bar_width=10, always_overscroll = False, scroll_type=['bars', 'content'], **kwargs)
         self.effect_cls = ScrollEffect
         self.ui_root = ui_root
         self.contents = YTDLDownloadQueueContents(ui_root, size_hint_x=1.0, size_hint_y=None, height=10)
         self.add_widget(self.contents)
         self.bind(height=self.on_height_changed)
         self.on_height_changed(self, self.height)
+        
+        self.bar_color = (0.7, 0.7, 1.0, 0.9)
+        self.bar_inactive_color = (0.7, 0.7, 0.7, 0.7)
 
     def refresh_all(self):
         self.contents.refresh_all()
@@ -347,12 +369,17 @@ class YTDLConfigEntryView(BoxLayout):
 
         self.subtitle_entry = BoxLayout(orientation='horizontal', size_hint=(1.0, 0.1))
         self.chk_subtitles = CheckBox(size_hint=(0.1, 1.0))
-        self.lbl_subtitles = Label(text="Download Subtitles", size_hint=(0.9, 1.0))
+        self.lbl_subtitles = Label(text="Download Subtitles", size_hint=(0.4, 1.0))
+        self.chk_burnsubs = CheckBox(size_hint=(0.1, 1.0))
+        self.lbl_burnsubs = Label(text="Burn to Video", size_hint=(0.4, 1.0))
         self.lbl_subtitles.bind(size=self.align_subtitle)
+        self.lbl_burnsubs.bind(size=self.align_subtitle)
         self.align_subtitle()
 
         self.subtitle_entry.add_widget(self.chk_subtitles)
         self.subtitle_entry.add_widget(self.lbl_subtitles)
+        self.subtitle_entry.add_widget(self.chk_burnsubs)
+        self.subtitle_entry.add_widget(self.lbl_burnsubs)
         
         self.title_entry = BoxLayout(orientation='horizontal', size_hint=(1.0, 0.1))
         self.lbl_title = Label(text="Title:", size_hint=(0.2, 1.0))
@@ -377,6 +404,10 @@ class YTDLConfigEntryView(BoxLayout):
         self.lbl_subtitles.halign = 'left'
         self.lbl_subtitles.valign = 'middle'
 
+        self.lbl_burnsubs.text_size = self.lbl_burnsubs.size
+        self.lbl_burnsubs.halign = 'left'
+        self.lbl_burnsubs.valign = 'middle'
+
 class YTDLDetailView(BoxLayout):
     editable = BooleanProperty(False)
 
@@ -397,6 +428,7 @@ class YTDLDetailView(BoxLayout):
         self.config_entry.dltype_audio.on_press = self.update_info
         self.config_entry.dltype_video.on_press = self.update_info
         self.config_entry.chk_subtitles.on_press = self.update_info
+        self.config_entry.chk_burnsubs.on_press = self.update_info
         self.bind(editable=self.on_editable_changed)
     
     def on_focus(self, inst, val):
@@ -414,6 +446,7 @@ class YTDLDetailView(BoxLayout):
         self.config_entry.dltype_audio.disabled = not self.editable
         self.config_entry.dltype_video.disabled = not self.editable
         self.config_entry.chk_subtitles.disabled = not self.editable
+        self.config_entry.chk_burnsubs.disabled = not self.editable
 
     def update_info(self, *args):
         none_for_empty = lambda s: None if len(s.strip()) == 0 else s
@@ -424,6 +457,7 @@ class YTDLDetailView(BoxLayout):
             self.selected_download.title = none_for_empty(clean(self.config_entry.txt_title.text))
             self.selected_download.author = none_for_empty(clean(self.config_entry.txt_author.text))
             self.selected_download.subtitles = self.config_entry.chk_subtitles.active
+            self.selected_download.burn_subtitles = self.config_entry.chk_burnsubs.active
             self.selected_download.audio_only = self.config_entry.dltype_audio.state == 'down'
             self.refresh()
 
@@ -435,6 +469,7 @@ class YTDLDetailView(BoxLayout):
             self.config_entry.txt_title.text = self.selected_download.otitle()
             self.config_entry.txt_author.text = self.selected_download.oauthor()
             self.config_entry.chk_subtitles.active = self.selected_download.subtitles
+            self.config_entry.chk_burnsubs.active = self.selected_download.burn_subtitles
             if self.selected_download.audio_only:
                 self.config_entry.dltype_audio.state = 'down'
                 self.config_entry.dltype_video.state = 'normal'
@@ -447,6 +482,7 @@ class YTDLDetailView(BoxLayout):
             self.config_entry.txt_title.text = ""
             self.config_entry.txt_author.text = ""
             self.config_entry.chk_subtitles.active = False
+            self.config_entry.chk_burnsubs.active = False
             self.config_entry.dltype_audio.state = 'normal'
             self.config_entry.dltype_video.state = 'normal'
             self.editable = False
