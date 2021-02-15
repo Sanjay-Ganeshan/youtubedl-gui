@@ -40,55 +40,46 @@ class Placeholder(Image):
         super().__init__(*args, source=PLACEHOLDER_IMG, **kwargs)
 
 class ImageButton(Button):
-    source = StringProperty("")
+    source = StringProperty(PLACEHOLDER_IMG)
 
-    def __init__(self, source="", *args, **kwargs):
+    def __init__(self, source=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.img = None
-        self.img_src = ""
         self.rect = Rectangle(pos=(0,0), size=(1,1), texture=None)
-        self.bind(source=self.refresh_rect, size=self.refresh_rect, pos=self.refresh_rect)
+        self.bind(source=self.refresh_rect, size=self.resize_rect, pos=self.resize_rect)
+        if source is None:
+            source = PLACEHOLDER_IMG
         self.source = source
         self.canvas.add(IColor(rgb=(1,1,1)))
+        self.canvas.add(self.rect)
+        self.refresh_rect()
+        self.resize_rect()
+
+    def resize_rect(self, *args):
+        mypos = tuple(map(int, self.pos))
+        mysize = tuple(map(int, self.size))
+
+        # We want to maintain aspect ratio
+        wmult = mysize[0]*0.9 / max(self.img.width, 1)
+        hmult = mysize[1]*0.9 / max(self.img.height, 1)
+
+        bettermult = min(wmult, hmult)
+
+        outw = int(self.img.width * bettermult)
+        outh = int(self.img.height * bettermult)
+
+        paddingw = (mysize[0] - outw) // 2
+        paddingh = (mysize[1] - outh) // 2
+
+        self.rect.pos = (paddingw+mypos[0], paddingh+mypos[1])
+        self.rect.size = (outw, outh)
 
     def refresh_rect(self, *args):
-        if str(self.source) == self.img_src:
-            # Already up to date
-            pass
-
-        else:
-            if self.source == "":
-                self.img = None
-                self.img_src = ""
-                self.rect.texture = None
-                if self.rect in self.canvas.children:
-                    self.canvas.remove(self.rect)
-            else:
-                self.img = RawImage(self.source)
-                self.img_src = str(self.source)
-                self.rect.texture = self.img.texture
-                if self.rect not in self.canvas.children:
-                    self.canvas.add(self.rect)
+        assert resource_find(self.source) is not None
+        self.img = RawImage(str(self.source))
+        self.rect.texture = self.img.texture
         
 
-        if self.img is not None:
-            mypos = tuple(map(int, self.pos))
-            mysize = tuple(map(int, self.size))
-
-            # We want to maintain aspect ratio
-            wmult = mysize[0]*0.9 / self.img.width
-            hmult = mysize[1]*0.9 / self.img.height
-
-            bettermult = min(wmult, hmult)
-
-            outw = int(self.img.width * bettermult)
-            outh = int(self.img.height * bettermult)
-
-            paddingw = (mysize[0] - outw) // 2
-            paddingh = (mysize[1] - outh) // 2
-
-            self.rect.pos = (paddingw+mypos[0], paddingh+mypos[1])
-            self.rect.size = (outw, outh)
 
 class YTDLQueueControls(BoxLayout):
     def __init__(self, ui_root, *args, **kwargs):
