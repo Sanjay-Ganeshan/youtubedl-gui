@@ -81,7 +81,7 @@ class DownloadEntry(object):
         self.pafy = None
         self.audio_only = False
         self.subtitles = False
-        self.burn_subtitles = True
+        self.burn_subtitles = False
         self.download_progress = None
         self.download_thread = None
 

@@ -84,7 +84,6 @@ class ImageButton(Button):
 
     def refresh_rect(self, *args):
         assert resource_find(self.source) is not None
-        print("Showing",self.source)
         self.img = RawImage(str(self.source))
         self.rect.texture = self.img.texture
         
@@ -180,7 +179,7 @@ class YTDLQueueEntry(BoxLayout):
         self.bind(done=self.refresh_from_info)
 
     def on_dl_or_reveal_pressed(self, *args):
-        if self.info.is_revealable():
+        if self.info.is_revealable() and self.conversion_success and self.done:
             self.on_reveal_pressed()
         elif self.info.is_downloadable():
             self.on_dl_pressed()
@@ -190,7 +189,7 @@ class YTDLQueueEntry(BoxLayout):
 
         which_icon = None
 
-        if self.info.is_revealable():
+        if self.info.is_revealable() and self.conversion_success and self.done:
             which_icon = self.reveal_icon
         elif self.info.is_downloadable():
             which_icon = self.download_icon
