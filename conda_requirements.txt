@@ -2,6 +2,7 @@
 # $ conda create --name <env> --file <this file>
 # platform: win-64
 ffmpeg=4.3.1=ha925a31_0
+ffmpeg-python=0.2.0=py_0
 kivy=2.0.0=py38h7600b87_1
 pydub=0.23.1=py_0
 requests=2.25.1=pypi_0

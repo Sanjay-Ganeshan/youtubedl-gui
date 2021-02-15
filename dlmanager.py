@@ -1,6 +1,7 @@
 import typing as T
 
 from . import DEFAULT_DOWNLOAD_DIR
+from .subtitlegetter import download_subtitles
 
 import pafy
 import youtube_dl
@@ -266,6 +267,9 @@ class DownloadEntry(object):
         self.output_file = converted_base
         self.output_extension = converted_ext
 
+        if self.subtitles:
+            self._download_subtitles()
+
         for each_callback in self.done_listeners:
             each_callback(True)
 
@@ -282,7 +286,8 @@ class DownloadEntry(object):
         self.is_done = True
 
     def _download_subtitles(self):
-        pass
+        if self.url is not None:
+            download_subtitles(self.url, self.opath())
 
     def reveal_in_explorer(self):
         if self.exists_locally():
