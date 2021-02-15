@@ -1,6 +1,7 @@
 import typing as T
 import youtube_dl
 import os
+import sys
 
 def download_subtitles(link: str, fname: str):
     fname = os.path.abspath(fname)
@@ -18,12 +19,17 @@ def download_subtitles(link: str, fname: str):
         'subtitleslangs': ['en'],
         'skip_download': True,
         'postprocessors': postprocessors,
-        'outtmpl': fname + '.%(ext)s'
+        'outtmpl': outpath + '.%(ext)s'
     }
-    with youtube_dl.YoutubeDL(params=yt_params) as downloader:
-        downloader.download([link])
+
+    try:
+        with youtube_dl.YoutubeDL(params=yt_params) as downloader:
+            downloader.download([link])
+    except Exception as exc:
+        print("WARNING: Subtitle download failed.", file=sys.stderr)    
     
-    return fname + ".en.vtt"
+    return outpath + ".en.vtt"
+    
 
 if __name__ == '__main__':
     test_download()

@@ -196,6 +196,9 @@ class YTDLQueueEntry(BoxLayout):
             which_icon = self.download_icon
         elif not self.conversion_success:
             which_icon = ICON_WARNING
+        elif self.done and self.conversion_success:
+            # It's SUPPOSED to be done and converted, but we still can't see it
+            which_icon = ICON_WARNING
         else:
             which_icon = None
 
