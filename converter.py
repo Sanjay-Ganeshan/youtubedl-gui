@@ -5,7 +5,7 @@ import typing as T
 import sys
 
 def extract_audio(input_file: str, burned_subtitles : T.Optional[str] = None, remove_old: bool = False) -> T.Optional[str]:
-    return convert_common(input_file, ".mp3", True, remove_old)
+    return convert_common(input_file, ".mp3", True, burned_subtitles, remove_old)
 
 def convert_video(input_file: str, burned_subtitles : T.Optional[str] = None, remove_old: bool = False) -> T.Optional[str]:
     return convert_common(input_file, ".mp4", False, burned_subtitles, remove_old)
