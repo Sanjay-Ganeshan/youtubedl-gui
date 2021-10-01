@@ -2,6 +2,7 @@ import typing as T
 
 from . import DEFAULT_DOWNLOAD_DIR
 from .subtitlegetter import download_subtitles
+from .dlmutex import downloading_lock
 
 import pafy
 import youtube_dl
@@ -289,16 +290,18 @@ class DownloadEntry(object):
                 each_callback(True)
 
     def _download_audio(self):
-        audiostream = self.pafy.getbestaudio()
-        self._download_common(audiostream, extract_audio)
-        # Finally, tag it!
-        tag_file(self.opath(), self.otitle(), self.oauthor())
-        self.is_done = True
+        with downloading_lock:
+            audiostream = self.pafy.getbestaudio()
+            self._download_common(audiostream, extract_audio)
+            # Finally, tag it!
+            tag_file(self.opath(), self.otitle(), self.oauthor())
+            self.is_done = True
 
     def _download_video(self):
-        videostream = self.pafy.getbest()
-        self._download_common(videostream, convert_video)
-        self.is_done = True
+        with downloading_lock:
+            videostream = self.pafy.getbest()
+            self._download_common(videostream, convert_video)
+            self.is_done = True
 
     def _download_subtitles(self):
         if self.url is not None:
