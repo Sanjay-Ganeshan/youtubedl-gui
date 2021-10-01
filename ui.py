@@ -264,6 +264,9 @@ class YTDLQueueEntry(BoxLayout):
         self.description.text = desctext
         self.refresh_buttons()
 
+    def set_get_subtitles(self, new_get_subtitles: bool):
+        self.info.set_download_subtitles(new_get_subtitles)
+
     def select(self):
         self.description.color = (0.7, 0.7, 1.0, 1.0)
         self.description.bold = True
@@ -313,6 +316,10 @@ class YTDLDownloadQueueContents(BoxLayout):
                 return each_entry
         else:
             return None
+    
+    def sync_all_get_subtitles(self, new_get_subtitles: bool):
+        for each_entry in self.entries:
+            each_entry.set_get_subtitles(new_get_subtitles)
 
 class YTDLDownloadQueueScroller(ScrollView):
     def __init__(self, ui_root, *args, **kwargs):
@@ -347,6 +354,10 @@ class YTDLDownloadQueueScroller(ScrollView):
 
     def get_first_download(self) -> T.Optional[YTDLQueueEntry]:
         return self.contents.get_first_download()
+
+    def sync_all_get_subtitles(self, new_get_subtitles: bool):
+        self.contents.sync_all_get_subtitles(new_get_subtitles)
+
 
 class YTDLConfigEntryView(BoxLayout):
     def __init__(self, ui_root, *args, **kwargs):
@@ -450,6 +461,10 @@ class YTDLDetailView(BoxLayout):
         self.config_entry.chk_subtitles.disabled = not self.editable
         self.config_entry.chk_burnsubs.disabled = not self.editable
 
+
+    def sync_all_get_subtitles(self, new_get_subtitles: bool):
+        self.ui_root.sync_all_get_subtitles(new_get_subtitles)
+
     def update_info(self, *args):
         none_for_empty = lambda s: None if len(s.strip()) == 0 else s
         clean = lambda s: " ".join(s.split()).strip()
@@ -459,6 +474,7 @@ class YTDLDetailView(BoxLayout):
             self.selected_download.title = none_for_empty(clean(self.config_entry.txt_title.text))
             self.selected_download.author = none_for_empty(clean(self.config_entry.txt_author.text))
             self.selected_download.subtitles = self.config_entry.chk_subtitles.active
+            self.sync_all_get_subtitles(self.selected_download.subtitles)
             self.selected_download.burn_subtitles = self.config_entry.chk_burnsubs.active
             self.selected_download.audio_only = self.config_entry.dltype_audio.state == 'down'
             self.refresh()
@@ -517,6 +533,11 @@ class YTDLRoot(BoxLayout):
         self.current_download = None
 
         self.hide_details()
+
+
+    def sync_all_get_subtitles(self, new_get_subtitles: bool):
+        self.dl_queue.sync_all_get_subtitles(new_get_subtitles)
+
 
     def select_entry(self, wdg):
         is_new = not (self.bound_wdg == wdg)

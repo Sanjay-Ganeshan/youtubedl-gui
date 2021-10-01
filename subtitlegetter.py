@@ -3,7 +3,7 @@ import youtube_dl
 import os
 import sys
 
-def download_subtitles(link: str, fname: str):
+def download_subtitles(link: str, fname: str, lang: str = "en"):
     fname = os.path.abspath(fname)
     outpath = os.path.splitext(fname)[0]
 
@@ -16,7 +16,7 @@ def download_subtitles(link: str, fname: str):
     )
     yt_params = {
         'writesubtitles': True,
-        'subtitleslangs': ['en'],
+        'subtitleslangs': [lang],
         'skip_download': True,
         'postprocessors': postprocessors,
         'outtmpl': outpath + '.%(ext)s'
