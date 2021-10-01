@@ -596,14 +596,10 @@ class YTDLRoot(BoxLayout):
         return self.dl_queue.get_first_download()
     
     def download_all(self, *args):
-        if self.current_download is not None:
-            self.current_download.unbind(download_progress=self.on_dl_progress, done=self.download_all)
-        self.current_download = self.get_first_download()
-        if self.current_download is not None:
-            self.reset_progress()
-            self.current_download.bind(download_progress=self.on_dl_progress, done=self.download_all)
-            # Just trigger the "download button pressed" event
-            self.current_download.on_dl_pressed()
+        item = self.get_first_download()
+        while item is not None:
+            item.on_dl_pressed()
+            item = self.get_first_download()
             
 
 class YTDLApp(App):
