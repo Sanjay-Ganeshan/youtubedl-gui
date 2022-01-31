@@ -1,0 +1,6 @@
+[submodule "pafy"]
+	path = pafy
+	url = https://github.com/mps-youtube/pafy
+[submodule "youtube-dl"]
+	path = youtube-dl
+	url = https://github.com/ytdl-org/youtube-dl

@@ -4,3 +4,4 @@ api_key.py
 *.mp3
 *.vtt
 *.webm
+.vscode
